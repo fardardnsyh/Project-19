@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ApplicationStatus {
+  APPLIED
+  INTERVIEW
+  REJECTED
+  OFFER
+  CLOSED
+}
+
+model Account {
+  id                 String    @id @default(cuid())
+  userId             String
+  providerType       String
+  providerId         String
+  providerAccountId  String
+  refreshToken       String?
+  accessToken        String?
+  accessTokenExpires DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id])
+
+  @@unique([providerId, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expires      DateTime
+  sessionToken String   @unique
+  accessToken  String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model UserLink {
+  id        String   @id @default(uuid())
+  user      User[]
+  url       String   @db.VarChar(256)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ImageUpload {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  url       String   @db.VarChar(256)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Skill {
+  id     String  @id
+  text   String?
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+model User {
+  id             String        @id @default(cuid())
+  hashedPassword String?
+  email          String?       @unique
+  emailVerified  DateTime?
+  name           String?
+  bio            String?       @default("") @db.VarChar(1000)
+  avatar         String?
+  banner         String?
+  location       String?
+  experience     Int?          @default(0)
+  skills         Skill[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  socialLinks    UserLink[]
+  imageUpload    ImageUpload[]
+  applications   Application[]
+}
+
+model Application {
+  id           String            @id @default(uuid())
+  company      String
+  title        String
+  description  String            @db.Text
+  location     String
+  Url          String?
+  datePosted   DateTime
+  deadlineDate DateTime?
+  status       ApplicationStatus
+  user         User              @relation(fields: [userId], references: [id])
+  userId       String
+
+  @@index([userId])
+}
+
+model VerificationRequest {
+  id         String   @id @default(cuid())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, token])
+}
